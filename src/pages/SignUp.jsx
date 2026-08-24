@@ -6,6 +6,7 @@ import {
   Printer, Search, ShoppingBag, Heart
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import { sendResendTestEmail } from '../services/emailService';
 import BrandLogo from '../components/BrandLogo';
 
 const SignUp = () => {
@@ -116,6 +117,12 @@ const SignUp = () => {
           state: formData.state,
           city: formData.city
         }));
+
+        try {
+          await sendResendTestEmail();
+        } catch (emailError) {
+          console.warn('Welcome email could not be sent after signup:', emailError);
+        }
 
         navigate('/verify-email');
       }

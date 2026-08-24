@@ -1,4 +1,33 @@
 import { supabase } from '../supabaseClient';
+import { Resend } from 'resend';
+
+const resendApiKey = import.meta.env.VITE_RESEND_API_KEY;
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
+
+/**
+ * Send a test email using the Resend API.
+ * Replace re_xxxxxxxxx in your .env file with your real API key.
+ */
+export const sendResendTestEmail = async () => {
+  if (!resend) {
+    console.warn('Missing VITE_RESEND_API_KEY. Replace re_xxxxxxxxx with your real Resend API key in your .env file.');
+    return null;
+  }
+
+  try {
+    const response = await resend.emails.send({
+      from: 'onboarding@resend.dev',
+      to: 'adewaleyussuf615@gmail.com',
+      subject: 'Hello World',
+      html: '<p>Congrats on sending your <strong>first email</strong>!</p>'
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Error sending email with Resend:', error);
+    throw error;
+  }
+};
 
 /**
  * Send order confirmation email
