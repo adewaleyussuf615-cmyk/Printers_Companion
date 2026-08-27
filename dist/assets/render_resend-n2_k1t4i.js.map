@@ -1,1 +1,0 @@
-{"version":3,"file":"render_resend-n2_k1t4i.js","names":[],"sources":["../../__vite-optional-peer-dep:@react-email/render:resend"],"sourcesContent":["export default {};\nthrow new Error(`Could not resolve \"@react-email/render\" imported by \"resend\". Is it installed?`)"],"mappings":"AAAA,IAAA,EAAe,CAAC,EAChB,MAAU,MAAM,gFAAgF"}
