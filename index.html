@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script>
+      // Sandboxed iframe environment patch to prevent "fetch of Window which has only a getter" errors
+      (function() {
+        try {
+          let currentFetch = window.fetch;
+          
+          function patch(obj) {
+            if (!obj) return;
+            try {
+              Object.defineProperty(obj, 'fetch', {
+                get() {
+                  return currentFetch;
+                },
+                set(value) {
+                  currentFetch = value;
+                },
+                configurable: true,
+                enumerable: true
+              });
+            } catch (e) {
+              // Ignore if we cannot redefine on this level
+            }
+          }
+          
+          patch(window);
+          patch(globalThis);
+          patch(self);
+          if (typeof Window !== 'undefined' && Window.prototype) {
+            patch(Window.prototype);
+          }
+        } catch (err) {
+          console.warn('Failed to apply sandboxed fetch patch:', err);
+        }
+      })();
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="icon" type="image/png" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>Printers Companion</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
