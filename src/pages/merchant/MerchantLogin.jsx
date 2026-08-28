@@ -41,7 +41,7 @@ const MerchantLogin = () => {
       if (roleError) {
         console.warn('Could not fetch user profile role:', roleError);
         if (data.user.user_metadata?.role === 'merchant') {
-          navigate('/merchant/dashboard');
+          navigate('/merchant/dashboard', { state: { showInstallPrompt: true } });
           return;
         }
         throw new Error('Merchant profile is not ready yet. Please try again in a moment.');
@@ -60,7 +60,7 @@ const MerchantLogin = () => {
         throw new Error('This account is not registered as a merchant.');
       }
 
-      navigate('/merchant/dashboard');
+      navigate('/merchant/dashboard', { state: { showInstallPrompt: true } });
     } catch (err) {
       console.error('Merchant login error:', err);
       setError(err.message || 'Invalid email or password');

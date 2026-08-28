@@ -74,6 +74,13 @@ function App() {
 
   useEffect(() => {
     console.log('useEffect running...');
+
+    const browserWindow = window as Window & { __pcDeferredInstallPrompt?: any }
+    const handleInstallAvailable = (event: Event) => {
+      event.preventDefault()
+      browserWindow.__pcDeferredInstallPrompt = event
+    }
+    window.addEventListener('beforeinstallprompt', handleInstallAvailable)
     
     // Get initial session
     supabase.auth.getSession().then((res: any) => {
@@ -96,7 +103,10 @@ function App() {
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleInstallAvailable)
+      subscription.unsubscribe()
+    }
   }, [])
 
   async function fetchMerchantId(userId: string) {

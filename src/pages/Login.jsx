@@ -66,7 +66,7 @@ const Login = () => {
         return;
       }
 
-      navigate('/verify-whatsapp');
+      navigate('/verify-whatsapp', { state: { showInstallPrompt: true } });
     } catch (err) {
       console.error('Login error:', err);
       setError(err.message || 'Invalid email or password');

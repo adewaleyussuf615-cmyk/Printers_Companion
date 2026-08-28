@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { MessageCircle, CheckCircle, Loader2, RefreshCw, Clock } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import BrandLogo from '../components/BrandLogo';
+import InstallAppPrompt from '../components/InstallAppPrompt';
 
 // Your business WhatsApp number in international format, digits only (no +, spaces, or dashes).
 // e.g. 2348012345678 for a Nigerian +234 801 234 5678 number.
@@ -16,6 +17,7 @@ const ConnectWhatsApp = () => {
   const [accountRole, setAccountRole] = useState('buyer');
   const [status, setStatus] = useState('loading'); // loading | pending | verified | expired | error
   const [error, setError] = useState('');
+  const [showInstallPrompt, setShowInstallPrompt] = useState(location.state?.showInstallPrompt === true);
   const pollRef = useRef(null);
   const from = location.state?.from || null;
 
@@ -166,6 +168,10 @@ const ConnectWhatsApp = () => {
 
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-md p-8 border border-[#E2E8F0] text-center">
+          <InstallAppPrompt
+            visible={showInstallPrompt}
+            onDismiss={() => setShowInstallPrompt(false)}
+          />
           {loading ? (
             <div className="py-10">
               <Loader2 className="w-8 h-8 text-[#0B1F3A] animate-spin mx-auto" />

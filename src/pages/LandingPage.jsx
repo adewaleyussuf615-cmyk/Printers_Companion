@@ -55,11 +55,11 @@ const LandingPage = () => {
         <div className="flex-1 w-full max-w-3xl mx-auto px-5 sm:px-8 lg:px-12 py-8 sm:py-12 flex flex-col justify-between z-10">
           
           {/* Logo Section */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <BrandLogo size="md" />
-            <div className="ml-auto flex items-center gap-3 text-xs font-bold">
-              <button type="button" onClick={() => navigate('/login')} className="text-[#143F8F] hover:text-[#0F306D]">Buyer Sign In</button>
-              <button type="button" onClick={() => navigate('/signup')} className="text-[#F22A1D] hover:text-[#C51F16]">Sign Up</button>
+            <div className="ml-auto grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center sm:gap-3 text-xs font-bold">
+              <button type="button" onClick={() => navigate('/login')} className="min-h-10 rounded-lg px-3 text-[#143F8F] hover:bg-[#143F8F]/5 hover:text-[#0F306D] whitespace-nowrap">Buyer Sign In</button>
+              <button type="button" onClick={() => navigate('/signup')} className="min-h-10 rounded-lg px-3 text-[#F22A1D] hover:bg-[#F22A1D]/5 hover:text-[#C51F16] whitespace-nowrap">Sign Up</button>
             </div>
           </div>
 
