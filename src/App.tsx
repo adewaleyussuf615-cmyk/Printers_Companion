@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from './supabaseClient'
+import { ProtectedRoute } from './ProtectedRoute'
 import WelcomeScreen from './components/WelcomeScreen'
 import Auth from './components/Auth'
 import BuyerSearch from './components/BuyerSearch'
@@ -55,9 +56,7 @@ function App() {
   debugEnv();
   
   const [session, setSession] = useState<Session | null>(null)
-  const [userRole, setUserRole] = useState<string | null>(null)
   const [merchantId, setMerchantId] = useState<string | null>(null)
-  const [authLoading, setAuthLoading] = useState(true)
   const [showSplash, setShowSplash] = useState<boolean>(() => {
     try {
       return !sessionStorage.getItem('pc_splash_shown')
@@ -82,12 +81,7 @@ function App() {
       console.log('Initial session:', session);
       setSession(session)
       if (session) {
-        Promise.all([
-          fetchUserRole(session.user.id),
-          fetchMerchantId(session.user.id)
-        ]).finally(() => setAuthLoading(false))
-      } else {
-        setAuthLoading(false)
+        fetchMerchantId(session.user.id)
       }
     })
 
@@ -96,43 +90,14 @@ function App() {
       console.log('Auth state changed:', _event, session);
       setSession(session)
       if (session?.user) {
-        setAuthLoading(true)
-        Promise.all([
-          fetchUserRole(session.user.id),
-          fetchMerchantId(session.user.id)
-        ]).finally(() => setAuthLoading(false))
+        fetchMerchantId(session.user.id)
       } else {
-        setUserRole(null)
         setMerchantId(null)
-        setAuthLoading(false)
       }
     })
 
     return () => subscription.unsubscribe()
   }, [])
-
-  async function fetchUserRole(userId: string) {
-    console.log('Fetching user role for:', userId);
-    const { data: { user } } = await supabase.auth.getUser()
-    const metadataRole = user?.user_metadata?.role || user?.app_metadata?.role
-    if (metadataRole) {
-      setUserRole(metadataRole)
-      return
-    }
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .single()
-    if (!error && data) {
-      console.log('User role:', data.role);
-      setUserRole(data.role)
-    } else if (error) {
-      console.error('Error fetching user role:', error);
-      const { data: { user } } = await supabase.auth.getUser()
-      setUserRole(user?.user_metadata?.role || null)
-    }
-  }
 
   async function fetchMerchantId(userId: string) {
     console.log('Fetching merchant ID for user:', userId);
@@ -187,96 +152,36 @@ function App() {
           {/* Buyer Routes */}
           <Route path="/buyer/login" element={<Login />} />
           <Route path="/buyer/signup" element={<SignUp />} />
-          <Route path="/connect-whatsapp" element={<ConnectWhatsApp />} />
+          <Route path="/verify-whatsapp" element={<ConnectWhatsApp />} />
+          <Route path="/connect-whatsapp" element={<Navigate to="/verify-whatsapp" replace />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/admin/whatsapp" element={<AdminWhatsAppVerifications />} />
-          <Route path="/marketplace" element={<BuyerMarketplace />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/order-confirmation" element={<OrderConfirmation />} />
-          <Route path="/profile" element={<UserProfile />} />
-          <Route path="/orders" element={<Orders />} />
-          
-          {/* Merchant Routes - Pass merchantId to components */}
           <Route path="/merchant/login" element={<MerchantLogin />} />
           <Route path="/merchant/signup" element={<MerchantSignup />} />
-          <Route
-            path="/merchant/dashboard"
-            element={
-              authLoading ? (
-                <div className="min-h-screen flex items-center justify-center text-sm text-slate-500">Loading merchant dashboard...</div>
-              ) : session && userRole === 'merchant' ? (
-                <MerchantDashboard merchantId={merchantId || undefined} />
-              ) : (
-                <Navigate to="/merchant/login" />
-              )
-            }
-          />
-          <Route
-            path="/merchant/stocks"
-            element={
-              authLoading ? (
-                <div className="min-h-screen flex items-center justify-center text-sm text-slate-500">Loading merchant dashboard...</div>
-              ) : session && userRole === 'merchant' ? (
-                <MerchantDashboard merchantId={merchantId || undefined} />
-              ) : (
-                <Navigate to="/merchant/login" />
-              )
-            }
-          />
-          <Route
-            path="/merchant/orders"
-            element={
-              session && userRole === 'merchant' ? (
-                <MerchantOrders merchantId={merchantId || undefined} />
-              ) : (
-                <Navigate to="/merchant/login" />
-              )
-            }
-          />
-          <Route
-            path="/merchant/settings"
-            element={
-              session && userRole === 'merchant' ? (
-                <MerchantSettings merchantId={merchantId || undefined} />
-              ) : (
-                <Navigate to="/merchant/login" />
-              )
-            }
-          />
-          
-          {/* Legacy Buyer Routes (for backward compatibility) */}
-          <Route
-            path="/buyer"
-            element={
-              session && userRole === 'buyer' ? (
-                <BuyerSearch />
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
-          />
-          <Route
-            path="/place-order"
-            element={
-              session && userRole === 'buyer' ? (
-                <PlaceOrder />
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
-          />
-          
-          {/* Legacy Merchant Route */}
-          <Route
-            path="/merchant/*"
-            element={
-              session && userRole === 'merchant' ? (
-                <MerchantDashboard merchantId={merchantId || undefined} />
-              ) : (
-                <Navigate to="/merchant/login" />
-              )
-            }
-          />
+
+          {/* Every buyer route is protected by the profile verification gate. */}
+          <Route element={<ProtectedRoute allowedRoles={['buyer']} />}>
+            <Route path="/marketplace" element={<BuyerMarketplace />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/order-confirmation" element={<OrderConfirmation />} />
+            <Route path="/profile" element={<UserProfile />} />
+            <Route path="/orders" element={<Orders />} />
+            <Route path="/buyer" element={<BuyerSearch />} />
+            <Route path="/place-order" element={<PlaceOrder />} />
+          </Route>
+
+          {/* Every merchant route is role-checked after the verification gate. */}
+          <Route element={<ProtectedRoute allowedRoles={['merchant']} />}>
+            <Route path="/merchant/dashboard" element={<MerchantDashboard merchantId={merchantId || undefined} />} />
+            <Route path="/merchant/stocks" element={<MerchantDashboard merchantId={merchantId || undefined} />} />
+            <Route path="/merchant/orders" element={<MerchantOrders merchantId={merchantId || undefined} />} />
+            <Route path="/merchant/settings" element={<MerchantSettings merchantId={merchantId || undefined} />} />
+            <Route path="/merchant/*" element={<MerchantDashboard merchantId={merchantId || undefined} />} />
+          </Route>
+
+          {/* Administrative verification actions also require a verified account. */}
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'merchant']} />}>
+            <Route path="/admin/whatsapp" element={<AdminWhatsAppVerifications />} />
+          </Route>
           
           {/* Catch-all - Redirect to home */}
           <Route path="*" element={<Navigate to="/" />} />

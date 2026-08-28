@@ -66,7 +66,7 @@ const Login = () => {
         return;
       }
 
-      navigate('/connect-whatsapp');
+      navigate('/verify-whatsapp');
     } catch (err) {
       console.error('Login error:', err);
       setError(err.message || 'Invalid email or password');

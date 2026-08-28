@@ -97,7 +97,7 @@ const Checkout = () => {
 
     if (!whatsappVerified) {
       alert('Please connect and verify your WhatsApp account before placing an order.');
-      navigate('/connect-whatsapp');
+      navigate('/verify-whatsapp');
       return;
     }
 

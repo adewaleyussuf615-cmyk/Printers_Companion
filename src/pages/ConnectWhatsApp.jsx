@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { MessageCircle, CheckCircle, Loader2, RefreshCw, Clock } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import BrandLogo from '../components/BrandLogo';
@@ -10,12 +10,18 @@ const BUSINESS_WHATSAPP_NUMBER = import.meta.env.VITE_BUSINESS_WHATSAPP_NUMBER |
 
 const ConnectWhatsApp = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [verification, setVerification] = useState(null); // pending row
   const [accountRole, setAccountRole] = useState('buyer');
   const [status, setStatus] = useState('loading'); // loading | pending | verified | expired | error
   const [error, setError] = useState('');
   const pollRef = useRef(null);
+  const from = location.state?.from || null;
+
+  const continueAfterVerification = (role) => {
+    navigate(from || (role === 'merchant' ? '/merchant/dashboard' : '/marketplace'), { replace: true });
+  };
 
   useEffect(() => {
     init();
@@ -34,14 +40,15 @@ const ConnectWhatsApp = () => {
       navigate('/login');
       return;
     }
-    setAccountRole(user.user_metadata?.role || 'buyer');
+    const role = user.user_metadata?.role || 'buyer';
+    setAccountRole(role);
 
     if (!user.email_confirmed_at) {
       navigate('/verify-email');
       return;
     }
 
-    // Already verified? Skip straight through.
+    // Already verified? Continue to the requested route.
     const { data: profile } = await supabase
       .from('profiles')
       .select('whatsapp_verified, whatsapp_number')
@@ -83,12 +90,28 @@ const ConnectWhatsApp = () => {
     setVerification(row);
     setStatus('pending');
     setLoading(false);
-    startPolling(row.id);
+    startPolling(row.id, role);
   };
 
-  const startPolling = (verificationId) => {
+  const startPolling = (verificationId, role) => {
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('whatsapp_verified')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.whatsapp_verified) {
+        setStatus('verified');
+        clearInterval(pollRef.current);
+        continueAfterVerification(role);
+        return;
+      }
+
       const { data } = await supabase
         .from('whatsapp_verifications')
         .select('*')
@@ -109,6 +132,22 @@ const ConnectWhatsApp = () => {
         clearInterval(pollRef.current);
       }
     }, 4000);
+  };
+
+  const checkNow = async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: profile } = user
+      ? await supabase.from('profiles').select('whatsapp_verified').eq('id', user.id).single()
+      : { data: null };
+
+    if (profile?.whatsapp_verified) {
+      setStatus('verified');
+      continueAfterVerification(accountRole);
+    } else {
+      setLoading(false);
+      setError('WhatsApp is not verified yet. Send the message, then try again.');
+    }
   };
 
   const waLink = verification
@@ -141,7 +180,7 @@ const ConnectWhatsApp = () => {
                 Your account is fully verified. You're all set to start ordering.
               </p>
               <button
-                onClick={() => navigate(accountRole === 'merchant' ? '/merchant/dashboard' : '/marketplace')}
+                onClick={() => continueAfterVerification(accountRole)}
                 className="w-full py-3 bg-[#0B1F3A] hover:bg-[#16365C] text-white font-bold rounded-xl transition-all font-display"
               >
                 Continue to Marketplace
@@ -191,6 +230,15 @@ const ConnectWhatsApp = () => {
                 Waiting for confirmation — this updates automatically
               </div>
 
+              <button
+                type="button"
+                onClick={checkNow}
+                disabled={loading}
+                className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-[#0B1F3A] underline disabled:opacity-50"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> I've sent it — check now
+              </button>
+
               {verification && (
                 <p className="text-[11px] text-slate-400 mt-4">
                   Code: <span className="font-mono font-semibold text-slate-500">{verification.token}</span> · expires in 30 minutes
@@ -201,9 +249,7 @@ const ConnectWhatsApp = () => {
         </div>
       </div>
 
-      <p className="text-center text-xs text-slate-400 pb-6">
-        Having trouble? <Link to={accountRole === 'merchant' ? '/merchant/dashboard' : '/marketplace'} className="underline">Skip for now</Link>
-      </p>
+      <p className="text-center text-xs text-slate-400 pb-6">WhatsApp verification is required before continuing.</p>
     </div>
   );
 };

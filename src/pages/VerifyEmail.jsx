@@ -12,7 +12,7 @@ export default function VerifyEmail(){
 
   const routeConfirmedUser = async (session) => {
    if (!session?.user?.email_confirmed_at || !active) return;
-   navigate('/connect-whatsapp', { replace: true });
+    navigate('/verify-whatsapp', { replace: true });
   };
 
   supabase.auth.getSession().then(({ data }) => {
